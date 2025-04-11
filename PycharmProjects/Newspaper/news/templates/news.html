@@ -1,0 +1,23 @@
+{% extends 'default.html' %}
+{% load my_filters %}
+
+{% block title %}
+Новости
+{% endblock title %}
+
+{% block content %}
+<h1>Новости</h1>
+<ul>
+    {% for news_item in news %}
+        <li>
+            <!-- Применение фильтра censor к заголовку статьи -->
+            <h2>
+                <a href="{% url 'news_detail' news_item.id %}">{{ news_item.title|censor }}</a>
+            </h2>
+            <!-- Применение фильтра censor к содержимому статьи -->
+            <p>{{ news_item.content|censor }}</p>
+            <p><small>Опубликовано: {{ news_item.created_at|date:"d M y" }}</small></p>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock content %}
