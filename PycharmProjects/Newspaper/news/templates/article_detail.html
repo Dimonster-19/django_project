@@ -1,0 +1,17 @@
+{% extends 'default.html' %}
+{% load my_filters %}
+
+{% block title %}
+{{ "Статья"|censor }}
+{% endblock title %}
+
+{% block content %}
+<h1>{{ article.title|censor }}</h1>
+<ul>
+    <li>
+        <h2></h2>
+        <p>{{ article.content|censor }}</p>
+        <p><small>Опубликовано: {{ article.pub_date|date:"d M y" }}</small></p>
+    </li>
+</ul>
+{% endblock content %}

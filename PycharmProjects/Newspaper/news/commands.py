@@ -18,21 +18,16 @@ category3 = Category.objects.create(name='Искусство')
 category4 = Category.objects.create(name='Спорт')
 
 # Создание статей article
-article3 = Post.objects.create(
-    author=author3,
+article7 = Post.objects.create(
+    author=author,
     type=Post.ARTICLE,
-    title='Треклятая ебанная статья',
-    content='Сука ну нахуй пизда блять. Я просто в шоке что эта сука работает! Пиздец!',
+    title='Человек — единственное млекопитающее, обладающее подбородком',
+    content='Среди всех животных единственным млекопитающим с подбородком является человек. '
+             'Этот факт выделяет нас среди других представителей класса.',
 )
-article3.categories.add(category_tech)
+article7.categories.add(category_tech)
 
-article2 = Post.objects.create(
-    author=author2,
-    type=Post.ARTICLE,
-    title='Вторая статья',
-    content='Содержание второй статьи...',
-)
-article2.categories.add(category_science)
+
 
 # Добавление новости news
 news1 = Post.objects.create(

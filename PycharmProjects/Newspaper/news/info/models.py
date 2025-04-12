@@ -99,3 +99,19 @@ class News(models.Model):
 
     def __str__(self):
         return self.title
+
+class Article(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    pub_date = models.DateTimeField('date published')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articles')
+
+    class Meta:
+        permissions = [
+            ('can_create_article', 'Может создавать статью'),
+            ('can_edit_article', 'Может редактировать статью'),
+            ('can_delete_article', 'Может удалять статью'),
+        ]
+
+    def __str__(self):
+        return self.title

@@ -1,0 +1,39 @@
+{% extends 'default.html' %}
+{% load my_filters %}
+
+{% block content %}
+<h1>Поиск новостей</h1>
+
+<!-- Блок отображения сообщений -->
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<form method="get">
+    <label for="title">Название:</label>
+    <input type="text" id="title" name="title" value="{{ request.GET.title }}">
+
+    <label for="author">Автор:</label>
+    <input type="text" id="author" name="author" value="{{ request.GET.author }}">
+
+    <label for="date">Дата (YYYY-MM-DD):</label>
+    <input type="date" id="date" name="date" value="{{ request.GET.date }}">
+
+    <button type="submit">Поиск</button>
+</form>
+
+<h2>Результаты поиска</h2>
+<ul>
+    {% for news_item in news %}
+        <li>
+            <h2>{{ news_item.title|censor }}</h2>
+            <p><small>Автор: {{ news_item.author.name }}, Дата: {{ news_item.created_at|date:"Y-m-d" }}</small></p>
+            <p>{{ news_item.content|censor|truncatechars:100 }}</p>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

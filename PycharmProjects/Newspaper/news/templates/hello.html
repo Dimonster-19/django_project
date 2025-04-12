@@ -1,0 +1,19 @@
+{% extends 'default.html' %}
+
+{% block title %}
+Добро пожаловать
+{% endblock title %}
+
+{% block content %}
+<h1>Добро пожаловать на наш сайт!</h1>
+<p>Это статическая приветственная страничка. Здесь вы можете найти информацию о нашем проекте и его целях. Мы рады приветствовать вас и надеемся, что вам понравится наше сообщество.</p>
+
+<div class="link-container">
+    <a href="{% url 'news' %}">Перейти к списку новостей</a>
+</div>
+
+<div class="link-container">
+    <a href="{% url 'articles' %}">Перейти к списку статей</a>
+</div>
+
+{% endblock content %}
