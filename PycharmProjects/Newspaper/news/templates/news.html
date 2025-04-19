@@ -1,47 +1,202 @@
 {% extends 'default.html' %}
 {% load my_filters %}
+{% load auth_extras %}
 
 {% block title %}
 Новости
 {% endblock title %}
 
 {% block content %}
-<h1>Новости</h1>
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="btn btn-profile">
+                    <i class="fas fa-user"></i> Личный кабинет
+                </a>
+            {% endif %}
+{% if user|in_group:'Authors' %}
+<div class="news-container">
+    <div class="news-header">
+        <h1>Новости</h1>
+        <a href="{% url 'create' %}" class="btn btn-add-news">
+            <i class="fas fa-plus-circle"></i> Добавить новость
+        </a>
+    </div>
+{% endif %}
 
- <p>
-    <a href="{% url 'create' %}" class="btn btn-primary">Добавить новую новость</a>
-</p>
+    <div class="news-list">
+        {% for news_item in page_obj %}
+        <div class="news-card">
+            <div class="news-content">
+                <h2 class="news-title">
+                    <a href="{% url 'news_detail' news_item.id %}">{{ news_item.title|censor }}</a>
+                </h2>
+                <p class="news-preview">{{ news_item.content|censor|truncatechars:100 }}</p>
+                <div class="news-meta">
+                    <span class="news-date"><i class="far fa-calendar-alt"></i> {{ news_item.created_at|date:"d M Y" }}</span>
+                    <span class="news-author"><i class="fas fa-user"></i> {{ news_item.author }}</span>
+                </div>
+            </div>
 
-<ul>
-    {% for news_item in page_obj %}
-        <li>
-            <h2>
-                <a href="{% url 'news_detail' news_item.id %}">{{ news_item.title|censor }}</a>
-            </h2>
-            <p>{{ news_item.content|censor|truncatechars:20 }}</p>
-            <p><small>Опубликовано: {{ news_item.created_at|date:"d M y" }}</small></p>
-            <p><small>Автор: {{ news_item.author}}</small></p>
-            <a href="{% url 'delete_news' news_item.id %}" class="btn btn-danger">Удалить</a>
-        </li>
-    {% endfor %}
-</ul>
+            {% if user|in_group:'Authors' %}
+            <div class="news-actions">
+                <a href="{% url 'delete_news' news_item.id %}" class="btn btn-delete">
+                    <i class="fas fa-trash-alt"></i> Удалить
+                </a>
+            </div>
+            {% endif %}
 
-<!-- Пагинация -->
-<div class="pagination">
-    <span class="step-links">
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    <div class="pagination">
         {% if page_obj.has_previous %}
-            <a href="?page=1">&laquo; первая</a>
-            <a href="?page={{ page_obj.previous_page_number }}">предыдущая</a>
+            <a href="?page=1" class="page-link first-page"><i class="fas fa-angle-double-left"></i> Первая</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link prev-page"><i class="fas fa-angle-left"></i> Предыдущая</a>
         {% endif %}
 
-        <span class="current">
+        <span class="current-page">
             Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
         </span>
 
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">следующая</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">последняя &raquo;</a>
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link next-page">Следующая <i class="fas fa-angle-right"></i></a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link last-page">Последняя <i class="fas fa-angle-double-right"></i></a>
         {% endif %}
-    </span>
+    </div>
 </div>
+
+<style>
+    /* Основные стили */
+    .news-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .news-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .news-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    /* Карточка новости */
+    .news-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .news-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .news-title a {
+        color: #2c3e50;
+        text-decoration: none;
+        font-size: 1.4em;
+    }
+
+    .news-title a:hover {
+        color: #4285f4;
+    }
+
+    .news-preview {
+        color: #555;
+        margin: 10px 0;
+        line-height: 1.5;
+    }
+
+    .news-meta {
+        display: flex;
+        gap: 15px;
+        font-size: 0.9em;
+        color: #7f8c8d;
+        margin-top: 15px;
+    }
+
+    .news-meta i {
+        margin-right: 5px;
+    }
+
+    /* Кнопки */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border-radius: 6px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-add-news {
+        background-color: #34a853;
+        color: white;
+    }
+
+    .btn-add-news:hover {
+        background-color: #2d9248;
+        transform: translateY(-2px);
+    }
+
+    .btn-delete {
+        background-color: #ea4335;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #d33426;
+    }
+
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 40px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        padding: 8px 12px;
+        background: #f8f9fa;
+        color: #4285f4;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background: #e0e0e0;
+    }
+
+    .current-page {
+        padding: 8px 12px;
+        background: #4285f4;
+        color: white;
+        border-radius: 4px;
+    }
+
+    /* Иконки */
+    i {
+        font-size: 0.9em;
+    }
+</style>
+
+<!-- Подключаем Font Awesome для иконок -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock content %}

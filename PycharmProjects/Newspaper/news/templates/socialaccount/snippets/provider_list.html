@@ -1,0 +1,11 @@
+{% load socialaccount %}
+{% get_providers as socialaccount_providers %}
+
+{% for provider in socialaccount_providers %}
+{% if provider.id == "yandex" %}
+<a href="{% provider_login_url provider.id process=process scope=scope auth_params=auth_params %}" 
+   class="btn btn-yandex">
+   <i class="fab fa-yandex"></i> Войти через Яндекс
+</a>
+{% endif %}
+{% endfor %}

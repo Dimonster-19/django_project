@@ -1,0 +1,77 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div class="rules-container">
+    <h2><i class="fas fa-book"></i> Правила для авторов</h2>
+    
+    <div class="rules-content">
+        <ol class="rules-list">
+            {% for rule in rules %}
+            <li class="rule-item">{{ rule }}</li>
+            {% endfor %}
+        </ol>
+        
+        <div class="rules-footer">
+            <a href="{% url 'become_author' %}" class="btn btn-back">
+                <i class="fas fa-arrow-left"></i> Вернуться к форме
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .rules-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 30px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .rules-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    
+    .rules-list {
+        padding-left: 20px;
+    }
+    
+    .rule-item {
+        margin-bottom: 15px;
+        line-height: 1.6;
+        color: #495057;
+    }
+    
+    .rules-footer {
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    .btn-back {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #4285f4;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-back:hover {
+        background-color: #3367d6;
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .rules-container {
+            margin: 20px;
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2 class="auth-title"><i class="fas fa-user-plus"></i> Регистрация</h2>
+
+        <form method="post" novalidate class="auth-form">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="auth-alert">
+                <i class="fas fa-exclamation-circle"></i> Исправьте ошибки в форме
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">
+                    {% if field.name == 'username' %}
+                    <i class="fas fa-user"></i>
+                    {% elif field.name == 'email' %}
+                    <i class="fas fa-envelope"></i>
+                    {% elif 'password' in field.name %}
+                    <i class="fas fa-lock"></i>
+                    {% endif %}
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% if field.help_text %}
+                <small class="form-help-text">{{ field.help_text }}</small>
+                {% endif %}
+
+                {% for error in field.errors %}
+                <div class="form-error">
+                    <i class="fas fa-exclamation"></i> {{ error }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-auth">
+                <i class="fas fa-user-plus"></i> Зарегистрироваться
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Основные стили */
+    .auth-container {
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .auth-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+    }
+
+    .auth-title {
+        color: #2c3e50;
+        text-align: center;
+        margin-bottom: 25px;
+        font-size: 1.8em;
+    }
+
+    /* Форма */
+    .auth-form {
+        margin-top: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 500;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1em;
+        transition: border 0.3s;
+    }
+
+    .form-group input:focus {
+        border-color: #4285f4;
+        outline: none;
+    }
+
+    /* Кнопки */
+    .btn-auth {
+        width: 100%;
+        padding: 12px;
+        background-color: #34a853;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: background 0.3s;
+        margin-top: 10px;
+    }
+
+    .btn-auth:hover {
+        background-color: #2d9248;
+    }
+
+    /* Оповещения и ошибки */
+    .auth-alert {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-error {
+        color: #dc3545;
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .form-help-text {
+        color: #6c757d;
+        font-size: 0.8em;
+        margin-top: 5px;
+        display: block;
+    }
+
+    /* Иконки */
+    .form-group label i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+    }
+</style>
+
+<!-- Подключаем Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}

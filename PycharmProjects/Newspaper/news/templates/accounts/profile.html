@@ -1,0 +1,120 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div class="profile-container">
+    <h2>Личный кабинет</h2>
+    {% if is_author %}
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> Вы являетесь автором
+    </div>
+    {% endif %}
+
+    <div class="user-info">
+        <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+        {% if user.first_name %}
+            <p><strong>Имя:</strong> {{ user.first_name }}</p>
+        {% endif %}
+        {% if user.email %}
+            <p><strong>Email:</strong> {{ user.email }}</p>
+        {% endif %}
+        <p><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</p>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'hello' %}" class="btn btn-main">На главную страницу</a>
+        {% if not is_author %}
+        <div class="mt-4">
+             <a href="{% url 'become_author' %}" class="btn btn-success">
+                <i class="fas fa-pen-alt"></i> Стать автором
+             </a>
+        </div>
+        {% endif %}
+        <div class="profile-actions">
+            <form action="{% url 'logout' %}" method="post" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-logout">Выйти из аккаунта</button>
+            </form>
+            <a href="{% url 'password_change' %}" class="btn btn-change-password">Сменить пароль</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 30px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .user-info {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .profile-actions {
+        display: flex;
+        gap: 15px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-main {
+        background-color: #4285f4;
+        color: white;
+        width: 100%;
+    }
+
+    .btn-main:hover {
+        background-color: #3367d6;
+        transform: translateY(-2px);
+    }
+
+    .btn-logout {
+        background-color: #ea4335;
+        color: white;
+        flex: 1;
+    }
+
+    .btn-logout:hover {
+        background-color: #d33426;
+        transform: translateY(-2px);
+    }
+
+    .btn-change-password {
+        background-color: #34a853;
+        color: white;
+        flex: 1;
+    }
+
+    .btn-change-password:hover {
+        background-color: #2d9248;
+        transform: translateY(-2px);
+    }
+
+    .logout-form {
+        flex: 1;
+        margin: 0;
+    }
+</style>
+{% endblock %}

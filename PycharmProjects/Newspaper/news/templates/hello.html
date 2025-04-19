@@ -5,15 +5,113 @@
 {% endblock title %}
 
 {% block content %}
-<h1>Добро пожаловать на наш сайт!</h1>
-<p>Это статическая приветственная страничка. Здесь вы можете найти информацию о нашем проекте и его целях. Мы рады приветствовать вас и надеемся, что вам понравится наше сообщество.</p>
+<div class="welcome-container">
+    <div class="welcome-card">
+        <h1>Добро пожаловать на наш сайт!</h1>
+        <p class="welcome-text">Это статическая приветственная страничка. Здесь вы можете найти информацию о нашем проекте и его целях. Мы рады приветствовать вас и надеемся, что вам понравится наше сообщество.</p>
 
-<div class="link-container">
-    <a href="{% url 'news' %}">Перейти к списку новостей</a>
+        <div class="action-buttons">
+            <a href="{% url 'news' %}" class="btn btn-news">
+                <i class="fas fa-newspaper"></i> Перейти к новостям
+            </a>
+
+            <a href="{% url 'articles' %}" class="btn btn-articles">
+                <i class="fas fa-book-open"></i> Перейти к статьям
+            </a>
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}" class="btn btn-profile">
+                    <i class="fas fa-user"></i> Личный кабинет
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Войти в аккаунт
+                </a>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
-<div class="link-container">
-    <a href="{% url 'articles' %}">Перейти к списку статей</a>
-</div>
+<style>
+    .welcome-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+    }
 
+    .welcome-card {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .welcome-text {
+        margin: 25px 0;
+        font-size: 1.1em;
+        line-height: 1.6;
+        color: #555;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 15px 25px;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        color: white;
+    }
+
+    .btn-news {
+        background-color: #4285f4;
+    }
+
+    .btn-news:hover {
+        background-color: #3367d6;
+        transform: translateY(-2px);
+    }
+
+    .btn-articles {
+        background-color: #34a853;
+    }
+
+    .btn-articles:hover {
+        background-color: #2d9248;
+        transform: translateY(-2px);
+    }
+
+    .btn-profile {
+        background-color: #fbbc05;
+        color: #333;
+    }
+
+    .btn-profile:hover {
+        background-color: #e8ac04;
+        transform: translateY(-2px);
+    }
+
+    .btn-login {
+        background-color: #ea4335;
+    }
+
+    .btn-login:hover {
+        background-color: #d33426;
+        transform: translateY(-2px);
+    }
+</style>
+
+<!-- Подключаем Font Awesome для иконок -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock content %}

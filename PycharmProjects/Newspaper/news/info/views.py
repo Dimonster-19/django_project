@@ -5,6 +5,8 @@ from .models import Post, Article
 from django.contrib import messages
 from django.db.models import Q
 from .forms import PostForm, ArticleForm
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 
 # Использование class-based views:
 class NewsList(ListView):
@@ -114,25 +116,56 @@ def create_article(request):
         form = ArticleForm()
     return render(request, 'article_create.html', {'form': form})
 
+
+
+
+def author_required(user):
+    """Проверка, что пользователь в группе Authors или является суперпользователем"""
+    return user.groups.filter(name='Authors').exists() or user.is_superuser
+
+@login_required
+@user_passes_test(author_required)
 def edit_article(request, article_id):
     article = get_object_or_404(Article, id=article_id)
+
+    # Дополнительная проверка, что пользователь - автор статьи
+    if request.user != article.author and not request.user.is_superuser:
+        raise PermissionDenied
 
     if request.method == "POST":
         form = ArticleForm(request.POST, instance=article)
         if form.is_valid():
-            form.save()
-            return redirect('articles')  # Обновите это на правильное имя URL для списка статей
+            article = form.save(commit=False)
+            article.save()
+            return redirect('article_detail', article_id=article.id)  # Перенаправляем на просмотр статьи
     else:
         form = ArticleForm(instance=article)
 
-    return render(request, 'article_edit.html', {'form': form, 'article': article})
+    return render(request, 'article_edit.html', {
+        'form': form,
+        'article': article,
+        'title': 'Редактирование статьи'
+    })
 
+
+@login_required
+@user_passes_test(author_required)
 def delete_article(request, article_id):
     article = get_object_or_404(Article, id=article_id)
+
+    # Дополнительная проверка, что пользователь - автор статьи
+    if request.user != article.author and not request.user.is_superuser:
+        raise PermissionDenied
+
     if request.method == "POST":
         article.delete()
-        return redirect('articles')
-    return render(request, 'confirm_delete.html', {'object': article})
+        messages.success(request, 'Статья успешно удалена')
+        return redirect('articles')  # Или другой подходящий URL
+
+    return render(request, 'confirm_delete.html', {
+        'object': article,
+        'title': 'Подтверждение удаления статьи'
+    })
 
 
 def hello(request):

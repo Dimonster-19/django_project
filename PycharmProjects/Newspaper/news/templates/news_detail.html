@@ -1,17 +1,118 @@
 {% extends 'default.html' %}
 {% load my_filters %}
+{% load auth_extras %}
 
 {% block title %}
 {{ "Новости"|censor }}
 {% endblock title %}
 
 {% block content %}
-<h1>{{ post.title|censor }}</h1>
-<ul>
-    <li>
-        <h2></h2>
+<div class="news-detail">
+    <!-- Кнопка "Все новости" вверху -->
+    <div class="mb-4">
+        <a href="{% url 'news' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> К списку новостей
+        </a>
+    </div>
+
+    <h1>{{ post.title|censor }}</h1>
+
+    <div class="news-content">
         <p>{{ post.content|censor }}</p>
-        <p><small>Опубликовано: {{ post.created_at|date:"d M y" }}</small></p>
-    </li>
-</ul>
+        <p class="news-meta">
+            <small>Опубликовано: {{ post.created_at|date:"d M Y" }}</small>
+            {% if post.author %}
+            <small> | Автор: {{ post.author.username }}</small>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Кнопки управления и кнопка "Все новости" внизу -->
+    <div class="d-flex justify-content-between mt-4">
+        <div class="news-actions">
+            {% if user|in_group:'Authors' and user == post.author or user.is_superuser %}
+            <a href="{% url 'edit_article' post.id %}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+            <a href="{% url 'delete_article' post.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Удалить
+            </a>
+            {% endif %}
+        </div>
+
+        <a href="{% url 'news' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i> Все новости
+        </a>
+    </div>
+</div>
+
+<style>
+    .news-detail {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .news-content {
+        margin-top: 20px;
+        line-height: 1.6;
+    }
+
+    .news-meta {
+        color: #6c757d;
+        margin-top: 15px;
+    }
+
+    .news-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 8px 15px;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0069d9;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-secondary {
+        border: 1px solid #6c757d;
+        color: #6c757d;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
 {% endblock content %}

@@ -1,17 +1,250 @@
 {% extends 'default.html' %}
-{% load my_filters %}
-
-{% block title %}
-{{ "Статья"|censor }}
-{% endblock title %}
+{% load auth_extras %}
 
 {% block content %}
-<h1>{{ article.title|censor }}</h1>
-<ul>
-    <li>
-        <h2></h2>
-        <p>{{ article.content|censor }}</p>
-        <p><small>Опубликовано: {{ article.pub_date|date:"d M y" }}</small></p>
-    </li>
-</ul>
-{% endblock content %}
+<div class="article-container">
+    <!-- Кнопка "Все статьи" -->
+    <a href="{% url 'articles' %}" class="btn btn-back mb-4">
+        <i class="fas fa-arrow-left"></i> К списку статей
+    </a>
+
+    <article class="article-detail">
+        <h1 class="article-title">{{ article.title }}</h1>
+
+        <div class="article-meta">
+            <span class="meta-item">
+                <i class="far fa-calendar-alt"></i> {{ article.created_at|date:"d.m.Y H:i" }}
+            </span>
+            <span class="meta-item">
+                <i class="fas fa-user-edit"></i> {{ article.author.username }}
+            </span>
+            {% if article.category %}
+            <span class="meta-item">
+                <i class="fas fa-tag"></i> {{ article.category.name }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if article.image %}
+        <div class="article-image">
+            <img src="{{ article.image.url }}" alt="{{ article.title }}" class="article-img">
+        </div>
+        {% endif %}
+
+        <div class="article-content">
+            {% if article.content %}
+                {{ article.content|safe }}
+            {% else %}
+                {{ article.text|linebreaks }}
+            {% endif %}
+        </div>
+
+        {% if article.tags.all %}
+        <div class="article-tags">
+            <i class="fas fa-tags"></i>
+            {% for tag in article.tags.all %}
+                <span class="tag">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Кнопки управления -->
+        <div class="article-footer">
+            {% if user|in_group:'Authors' and user == article.author or user.is_superuser %}
+            <div class="article-actions">
+                <a href="{% url 'edit_article' article.id %}" class="btn btn-action btn-edit">
+                    <i class="fas fa-edit"></i> Редактировать
+                </a>
+                <a href="{% url 'delete_article' article.id %}" class="btn btn-action btn-delete">
+                    <i class="fas fa-trash-alt"></i> Удалить
+                </a>
+            </div>
+            {% endif %}
+
+            <a href="{% url 'articles' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> Все статьи
+            </a>
+        </div>
+    </article>
+</div>
+
+<style>
+    /* Основные стили контейнера */
+    .article-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Кнопка "Назад" */
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: #6c757d;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-back:hover {
+        background-color: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Заголовок статьи */
+    .article-title {
+        font-size: 2rem;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+    }
+
+    /* Мета-информация */
+    .article-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    /* Изображение статьи */
+    .article-image {
+        margin-bottom: 1.5rem;
+    }
+
+    .article-img {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    /* Контент статьи */
+    .article-content {
+        line-height: 1.7;
+        font-size: 1.1rem;
+        color: #495057;
+        margin-bottom: 2rem;
+    }
+
+    .article-content p {
+        margin-bottom: 1.2em;
+    }
+
+    /* Теги */
+    .article-tags {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        color: #6c757d;
+    }
+
+    .tag {
+        background: #e9ecef;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    /* Футер статьи */
+    .article-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    /* Кнопки действий */
+    .article-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-edit {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-delete {
+        background-color: #e74c3c;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #c0392b;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-secondary {
+        background-color: transparent;
+        color: #6c757d;
+        border: 1px solid #6c757d;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .article-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+
+        .article-footer {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .article-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}

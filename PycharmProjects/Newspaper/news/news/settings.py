@@ -40,6 +40,11 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.flatpages',
     'info',
+    'accounts',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.yandex',
 ]
 
 MIDDLEWARE = [
@@ -50,10 +55,28 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Добавьте эту строку
+
 ]
 SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SOCIALACCOUNT_PROVIDERS = {
+    'yandex': {
+        'APP': {
+            'client_id': 'cfb2a244405a4b088af5e3b715bdb5a2',
+            'secret': '80a93ecd52cd4263bbe4b9334edf9301',
+            'key': ''
+        },
+        'SCOPE': ['login:email', 'login:info', 'login:avatar'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
 
 ROOT_URLCONF = 'news.urls'
 
@@ -127,3 +150,14 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'profile'
+LOGOUT_REDIRECT_URL = 'login'
+
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Вход по username или email
+ACCOUNT_EMAIL_REQUIRED = True                    # Email обязателен
+#ACCOUNT_EMAIL_VERIFICATION = 'mandatory'         # Обязательная верификация email
+ACCOUNT_UNIQUE_EMAIL = True                      # Уникальный email
+ACCOUNT_USERNAME_REQUIRED = True                 # Username обязателен
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'                # Редирект после выхода
