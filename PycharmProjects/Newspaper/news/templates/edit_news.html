@@ -1,23 +1,77 @@
 {% extends 'default.html' %}
 
 {% block content %}
-<h1>Редактировать новость</h1>
+<div class="container">
+    <h2>Редактирование новости</h2>
 
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
+    <!-- Отображаем автора для информации -->
+    <div class="form-group">
+        <label>Автор</label>
+        <input type="text" class="form-control"
+               value="{{ news_item.author.get_full_name|default:news_item.author.username }}"
+               disabled>
+    </div>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить изменения</button>
-</form>
+    <!-- Основная форма -->
+    <form id="edit-news-form" method="post" action="{% url 'edit_news' news_id=news_item.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
 
-<p><a href="{% url 'news' %}">Назад к списку новостей</a></p>
+        <!-- Остальные поля -->
+        <div class="form-group">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.title.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.content.label_tag }}
+            {{ form.content }}
+            {% if form.content.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.content.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.categories.label_tag }}
+            <div class="category-checkboxes">
+                {{ form.categories }}
+            </div>
+            {% if form.categories.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.categories.errors }}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a href="{% url 'news_detail' news_id=news_item.id %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+
+<script>
+document.getElementById('edit-news-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {
+            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = "{% url 'news_detail' news_id=news_item.id %}";
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script>
 {% endblock %}
-
-

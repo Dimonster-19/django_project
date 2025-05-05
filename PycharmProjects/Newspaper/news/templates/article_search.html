@@ -1,0 +1,85 @@
+{% extends 'default.html' %}
+{% load my_filters %}
+{% load auth_extras %}
+
+{% block title %}Поиск статей: "{{ search_query }}"{% endblock %}
+
+{% block content %}
+<div class="search-results">
+    <h1><i class="fas fa-search"></i> Результаты поиска: "{{ search_query }}"</h1>
+    <p class="search-stats">Найдено статей: {{ total_results }}</p>
+
+    <div class="articles-list">
+        {% if page_obj.object_list %}
+            {% for article in page_obj %}
+                <div class="article-card">
+                    <div class="article-content">
+                        <h2 class="article-title">
+                            <a href="{% url 'article_detail' article.id %}">{{ article.title|censor }}</a>
+                        </h2>
+                        <p class="article-preview">{{ article.content|censor|truncatechars:200 }}</p>
+                        <div class="article-meta">
+                            <span class="article-date">
+                                <i class="far fa-calendar-alt"></i> {{ article.pub_date|date:"d M Y" }}
+                            </span>
+                            <span class="article-author">
+                                <i class="fas fa-user"></i> {{ article.author.username }}
+                            </span>
+                            <span class="article-categories">
+                                <i class="fas fa-tags"></i>
+                                {% for category in article.categories.all %}
+                                    <a href="{% url 'articles' %}?category={{ category.name }}" class="category-tag">
+                                        {{ category.name }}
+                                    </a>
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if user|in_group:'Authors' and user == article.author %}
+                    <div class="article-actions">
+                        <a href="{% url 'edit_article' article.id %}" class="btn btn-edit">
+                            <i class="fas fa-edit"></i> Редактировать
+                        </a>
+                        <a href="{% url 'delete_article' article.id %}" class="btn btn-delete">
+                            <i class="fas fa-trash-alt"></i> Удалить
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-results alert alert-info">
+                <i class="fas fa-exclamation-circle"></i> По запросу "{{ search_query }}" ничего не найдено
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?q={{ search_query }}&page=1" class="page-link first-page">
+                <i class="fas fa-angle-double-left"></i> Первая
+            </a>
+            <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}" class="page-link prev-page">
+                <i class="fas fa-angle-left"></i> Предыдущая
+            </a>
+        {% endif %}
+
+        <span class="current-page">
+            Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}" class="page-link next-page">
+                Следующая <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}" class="page-link last-page">
+                Последняя <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock content %}

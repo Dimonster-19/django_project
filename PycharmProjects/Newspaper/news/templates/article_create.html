@@ -1,21 +1,260 @@
 {% extends 'default.html' %}
+{% load static %}
 
 {% block content %}
-<h1>Добавить новую статью</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Добавить новую статью</h3>
+                </div>
 
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить</button>
-</form>
+                    <form method="post" id="article-form" novalidate>
+                        {% csrf_token %}
 
-<p><a href="{% url 'articles' %}">Назад к списку статей</a></p>
+                        <!-- Поле заголовка -->
+                        <div class="form-group">
+                            <label for="id_title">Заголовок*</label>
+                            <input type="text" name="title" id="id_title"
+                                   class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                                   value="{{ form.title.value|default_if_none:'' }}" required>
+                            {% if form.title.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.title.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле автора -->
+                        <div class="form-group">
+                            <label for="id_author">Автор*</label>
+                            <select name="author" id="id_author" class="form-control select2">
+                                {% if request.user.is_superuser %}
+                                    {% for user in form.fields.author.queryset %}
+                                        <option value="{{ user.id }}" {% if user.id == form.author.value %}selected{% endif %}>
+                                            {{ user.get_full_name|default:user.username }}
+                                        </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="{{ request.user.id }}" selected>
+                                        {{ request.user.get_full_name|default:request.user.username }}
+                                    </option>
+                                {% endif %}
+                            </select>
+                            {% if form.author.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.author.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле даты публикации -->
+                        <div class="form-group">
+                            <label for="id_pub_date">Дата публикации*</label>
+                            <input type="datetime-local" name="pub_date" id="id_pub_date"
+                                   class="form-control {% if form.pub_date.errors %}is-invalid{% endif %}"
+                                   value="{{ form.pub_date.value|date:'Y-m-d\TH:i'|default_if_none:'' }}" required>
+                            {% if form.pub_date.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.pub_date.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле содержания -->
+                        <div class="form-group">
+                            <label for="id_content">Содержание*</label>
+                            <textarea name="content" id="id_content"
+                                      class="form-control {% if form.content.errors %}is-invalid{% endif %}"
+                                      rows="10" required>{{ form.content.value|default_if_none:'' }}</textarea>
+                            {% if form.content.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.content.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле категорий с множественным выбором -->
+                        <div class="form-group">
+                            <label>Категории*</label>
+                            <div class="category-list border rounded p-3 {% if form.categories.errors %}border-danger{% endif %}">
+                                {% for category in form.categories.field.queryset %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="categories"
+                                           value="{{ category.id }}"
+                                           id="cat-{{ category.id }}"
+                                           {% if category.id in form.categories.value|default_if_none:'' %}checked{% endif %}>
+                                    <label class="form-check-label" for="cat-{{ category.id }}">
+                                        {{ category.name }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.categories.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.categories.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                                <i class="fas fa-paper-plane mr-2"></i> Сохранить статью
+                            </button>
+                            <a href="{% url 'articles' %}" class="btn btn-outline-secondary btn-lg ml-2">
+                                <i class="fas fa-times mr-2"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключаем Font Awesome для иконок -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<!-- Подключаем Select2 для красивого выбора автора -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация Select2 для поля автора
+    $('.select2').select2({
+        placeholder: "Выберите автора",
+        allowClear: true,
+        width: '100%'
+    });
+
+    const form = document.getElementById('article-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', function(e) {
+        // Валидация выбора хотя бы одной категории
+        const checkedCategories = form.querySelectorAll('input[name="categories"]:checked');
+        if (checkedCategories.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите хотя бы одну категорию');
+            return;
+        }
+
+        // Блокировка кнопки при отправке
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Сохраняем...';
+    });
+});
+</script>
+
+    <style>
+    .category-checkbox {
+        margin-right: 8px;
+    }
+    .category-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .form-check {
+        margin-bottom: 8px;
+    }
+    .select2-container--default .select2-selection--single {
+        height: calc(1.5em + .75rem + 2px);
+        padding: .375rem .75rem;
+    }
+    .container {
+        max-width: 1100px;
+    }
+    .card {
+        border-radius: 10px;
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .invalid-feedback {
+        color: #dc3545;
+        font-size: 0.95rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s;
+        border: none;
+    }
+
+    .btn-primary {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-outline-secondary {
+        background: none;
+        border: 1px solid #6c757d;
+        color: #6c757d;
+    }
+
+    .btn-outline-secondary:hover {
+        background: #e9ecef;
+        color: #343a40;
+    }
+
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+        .card {
+            margin: 0;
+        }
+        .btn {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+    }
+</style>
 {% endblock %}

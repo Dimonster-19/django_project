@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Новая статья</title>
+</head>
+<body>
+    <h2>Здравствуйте, {{ user.username }}!</h2>
+    <p>В категории "{{ category.name }}" появилась новая статья:</p>
+    <h3>{{ article.title }}</h3>
+    <p>{{ article.content|truncatechars:200 }}</p>
+    <a href="http://{{ domain }}{% url 'article_detail' article.id %}">
+        Читать полностью
+    </a>
+    <p>
+        <small>
+            <a href="http://{{ domain }}{% url 'unsubscribe_category' category.id %}">
+                Отписаться от этой категории
+            </a>
+        </small>
+    </p>
+</body>
+</html>

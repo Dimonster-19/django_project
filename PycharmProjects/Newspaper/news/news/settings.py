@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.yandex',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
@@ -151,13 +152,64 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'profile'
 LOGOUT_REDIRECT_URL = 'login'
 
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Вход по username или email
-ACCOUNT_EMAIL_REQUIRED = True                    # Email обязателен
-#ACCOUNT_EMAIL_VERIFICATION = 'mandatory'         # Обязательная верификация email
-ACCOUNT_UNIQUE_EMAIL = True                      # Уникальный email
-ACCOUNT_USERNAME_REQUIRED = True                 # Username обязателен
-ACCOUNT_LOGOUT_REDIRECT_URL = '/'                # Редирект после выхода
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+
+# settings.py
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'dmitrij.khalo@gmail.com'
+EMAIL_HOST_PASSWORD = 'jqwt kaks gegb kfzc'
+DEFAULT_FROM_EMAIL = 'dmitrij.khalo@gmail.com'
+
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',  # Только предупреждения и ошибки
+    },
+}
+
+# Настройки домена
+DOMAIN = 'localhost:8000'  # Без http://
+
+# Настройки кеширования (если ещё не настроено)
+# Кэширование
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # /1 — номер БД Redis
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# Для сессий (опционально)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_SECURE = False # Для разработки (True для production)
+CSRF_COOKIE_SECURE = False     # Для разработки
+SESSION_COOKIE_SAMESITE = 'Lax'

@@ -1,0 +1,23 @@
+{% extends 'default.html' %}
+{% load my_filters %}
+
+{% block title %}
+    Подтверждение удаления новости
+{% endblock title %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Вы уверены, что хотите удалить новость?</h4>
+        <p>
+            <strong>{{ object.title|censor }}</strong>
+        </p>
+        <hr>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Удалить</button>
+            <a href="{% url 'news' %}" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock content %}

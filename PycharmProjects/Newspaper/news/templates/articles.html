@@ -1,57 +1,109 @@
 {% extends 'default.html' %}
+{% include 'messages.html' %}
 {% load my_filters %}
 {% load auth_extras %}
 
-{% block title %}
-Статьи
-{% endblock title %}
+{% block title %}Статьи{% endblock %}
 
 {% block content %}
-            {% if user.is_authenticated %}
-                <a href="{% url 'profile' %}" class="btn btn-profile">
-                    <i class="fas fa-user"></i> Личный кабинет
-                </a>
-            {% endif %}
-{% if user|in_group:'Authors' %}
 <div class="articles-container">
-    <div class="articles-header">
-        <h1><i class="fas fa-book-open"></i> Статьи</h1>
-        <a href="{% url 'create_article' %}" class="btn btn-add-article">
-            <i class="fas fa-plus-circle"></i> Добавить статью
-        </a>
+    <!-- Блок управления -->
+    <div class="articles-controls">
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}" class="btn btn-profile">
+                <i class="fas fa-user"></i> Личный кабинет
+            </a>
+        {% endif %}
+
+        <form action="{% url 'article_search' %}" method="get" class="search-form">
+            <input type="text" name="q" placeholder="Поиск статей...">
+            <button type="submit" class="btn btn-search">
+                <i class="fas fa-search"></i> Поиск
+            </button>
+        </form>
+
+        {% if user|in_group:'Authors' %}
+            <a href="{% url 'create_article' %}" class="btn btn-add-article">
+                <i class="fas fa-plus-circle"></i> Добавить статью
+            </a>
+        {% endif %}
     </div>
-{% endif %}
 
-    <div class="articles-list">
-        {% for article in page_obj %}
-        <div class="article-card">
-            <div class="article-content">
-                <h2 class="article-title">
-                    <a href="{% url 'article_detail' article.id %}">{{ article.title|censor }}</a>
-                </h2>
-                <p class="article-preview">{{ article.content|censor|truncatechars:100 }}</p>
-                <div class="article-meta">
-                    <span class="article-date"><i class="far fa-calendar-alt"></i> {{ article.pub_date|date:"d M Y" }}</span>
-                </div>
-            </div>
-
-            {% if user|in_group:'Authors' %}
-            <div class="article-actions">
-                <a href="{% url 'delete_article' article.id %}" class="btn btn-delete">
-                    <i class="fas fa-trash-alt"></i> Удалить
+    <!-- Блок категорий -->
+    <div class="categories-section">
+        <div class="categories-list">
+            <a href="{% url 'articles' %}"
+               class="category-btn {% if not current_category %}active{% endif %}">
+               Все статьи
+            </a>
+            {% for cat in all_categories %}
+                <a href="?category={{ cat.name }}"
+                   class="category-btn {% if current_category == cat.name %}active{% endif %}">
+                   {{ cat.name }} ({{ cat.article_count }})
                 </a>
-            </div>
-            {% endif %}
-
+            {% endfor %}
         </div>
-        {% endfor %}
+    </div>
+
+    <!-- Список статей -->
+    <div class="articles-list">
+        {% if page_obj.object_list %}
+            {% for article in page_obj %}
+            <div class="article-card">
+                <div class="article-content">
+                    <h2 class="article-title">
+                        <a href="{% url 'article_detail' article.id %}">{{ article.title|censor }}</a>
+                    </h2>
+                    <p class="article-preview">{{ article.content|censor|truncatechars:100 }}</p>
+                    <div class="article-meta">
+                        <span class="article-date">
+                            <i class="far fa-calendar-alt"></i> {{ article.pub_date|date:"d M Y" }}
+                        </span>
+                        <span class="article-author">
+                            <i class="fas fa-user"></i> {{ article.author.username }}
+                        </span>
+                        <span class="article-categories">
+                            <i class="fas fa-tags"></i>
+                            {% for category in article.categories.all %}
+                                <span class="category-tag">
+                                    {{ category.name }}
+                                </span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                </div>
+
+                {% if user|in_group:'Authors' and user == article.author %}
+                <div class="article-actions">
+                    <a href="{% url 'edit_article' article.id %}" class="btn btn-edit">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% url 'delete_article' article.id %}" class="btn btn-delete">
+                        <i class="fas fa-trash-alt"></i> Удалить
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-articles">
+                <i class="fas fa-info-circle"></i> Статьи не найдены
+            </div>
+        {% endif %}
     </div>
 
     <!-- Пагинация -->
+    {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-            <a href="?page=1" class="page-link first-page"><i class="fas fa-angle-double-left"></i> Первая</a>
-            <a href="?page={{ page_obj.previous_page_number }}" class="page-link prev-page"><i class="fas fa-angle-left"></i> Предыдущая</a>
+            <a href="?page=1{% if current_category %}&category={{ current_category }}{% endif %}"
+               class="page-link first-page">
+               <i class="fas fa-angle-double-left"></i> Первая
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}"
+               class="page-link prev-page">
+               <i class="fas fa-angle-left"></i> Предыдущая
+            </a>
         {% endif %}
 
         <span class="current-page">
@@ -59,34 +111,113 @@
         </span>
 
         {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="page-link next-page">Следующая <i class="fas fa-angle-right"></i></a>
-            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link last-page">Последняя <i class="fas fa-angle-double-right"></i></a>
+            <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}"
+               class="page-link next-page">
+               Следующая <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_category %}&category={{ current_category }}{% endif %}"
+               class="page-link last-page">
+               Последняя <i class="fas fa-angle-double-right"></i>
+            </a>
         {% endif %}
     </div>
+    {% endif %}
 </div>
 
 <style>
-    /* Основные стили */
+    /* Основные стили контейнера */
     .articles-container {
-        max-width: 800px;
-        margin: 40px auto;
+        max-width: 1200px;
+        margin: 0 auto;
         padding: 20px;
     }
 
-    .articles-header {
+    /* Стили для блока управления */
+    .articles-controls {
         display: flex;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
         align-items: center;
-        margin-bottom: 30px;
     }
 
+    /* Стили для поисковой формы */
+    .search-form {
+        display: flex;
+        flex-grow: 1;
+        max-width: 500px;
+    }
+
+    .search-form input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px 0 0 4px;
+        border-right: none;
+    }
+
+    .search-form button {
+        border-radius: 0 4px 4px 0;
+        border: none;
+    }
+
+    /* Стили для категорий */
+    .categories-section {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .categories-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .category-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 15px;
+        background-color: #3498db;
+        color: white;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .category-btn:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .category-btn.active {
+        background-color: #1a5276;
+    }
+
+    .category-btn i {
+        margin-right: 8px;
+    }
+
+    .category-tag {
+        display: inline-block;
+        background: #e0e0e0;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.8em;
+        margin-right: 5px;
+        color: #333;
+    }
+
+    /* Стили для списка статей */
     .articles-list {
         display: flex;
         flex-direction: column;
         gap: 20px;
     }
 
-    /* Карточка статьи */
     .article-card {
         background: #ffffff;
         border-radius: 10px;
@@ -99,10 +230,14 @@
         transform: translateY(-3px);
     }
 
+    .article-title {
+        margin: 0 0 10px 0;
+        font-size: 1.4em;
+    }
+
     .article-title a {
         color: #2c3e50;
         text-decoration: none;
-        font-size: 1.4em;
     }
 
     .article-title a:hover {
@@ -117,6 +252,7 @@
 
     .article-meta {
         display: flex;
+        flex-wrap: wrap;
         gap: 15px;
         font-size: 0.9em;
         color: #7f8c8d;
@@ -127,7 +263,7 @@
         margin-right: 5px;
     }
 
-    /* Кнопки */
+    /* Стили для кнопок */
     .btn {
         display: inline-flex;
         align-items: center;
@@ -141,13 +277,43 @@
         cursor: pointer;
     }
 
+    .btn-profile {
+        background-color: #673ab7;
+        color: white;
+    }
+
+    .btn-profile:hover {
+        background-color: #5e35b1;
+        transform: translateY(-2px);
+    }
+
     .btn-add-article {
-        background-color: #fbbc05;
-        color: #333;
+        background-color: #34a853;
+        color: white;
     }
 
     .btn-add-article:hover {
-        background-color: #e8ac04;
+        background-color: #2d9248;
+        transform: translateY(-2px);
+    }
+
+    .btn-search {
+        background-color: #4285f4;
+        color: white;
+    }
+
+    .btn-search:hover {
+        background-color: #3367d6;
+        transform: translateY(-2px);
+    }
+
+    .btn-edit {
+        background-color: #fbbc05;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background-color: #e6ac00;
         transform: translateY(-2px);
     }
 
@@ -158,9 +324,10 @@
 
     .btn-delete:hover {
         background-color: #d33426;
+        transform: translateY(-2px);
     }
 
-    /* Пагинация */
+    /* Стили для пагинации */
     .pagination {
         display: flex;
         justify-content: center;
@@ -181,6 +348,7 @@
 
     .page-link:hover {
         background: #e0e0e0;
+        transform: translateY(-1px);
     }
 
     .current-page {
@@ -190,9 +358,14 @@
         border-radius: 4px;
     }
 
-    /* Иконки */
-    i {
-        font-size: 0.9em;
+    /* Состояние "нет статей" */
+    .no-articles {
+        padding: 30px;
+        text-align: center;
+        color: #666;
+        background: #f9f9f9;
+        border-radius: 4px;
+        margin: 20px 0;
     }
 </style>
 

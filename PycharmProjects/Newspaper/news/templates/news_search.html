@@ -2,38 +2,330 @@
 {% load my_filters %}
 
 {% block content %}
-<h1>Поиск новостей</h1>
+<div class="news-container">
+    <div class="news-header">
+        <h1>Поиск контента</h1>
+        {% if user.is_authenticated and user.groups.all %}
+            {% for group in user.groups.all %}
+                {% if group.name == 'Authors' %}
+                    <div class="add-buttons">
+                        <a href="{% url 'create' %}" class="btn btn-add">
+                            <i class="fa fa-plus"></i> Добавить новость
+                        </a>
+                        <a href="{% url 'create_article' %}" class="btn btn-add">
+                            <i class="fa fa-plus"></i> Добавить статью
+                        </a>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+    <div class="mb-4">
+        <a href="{% url 'news' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> К списку новостей
+        </a>
+    </div>
 
-<!-- Блок отображения сообщений -->
-{% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    <!-- Сообщения об ошибках -->
+    {% if form.errors %}
+        <div class="error-message">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Форма поиска -->
+    <form method="get" class="news-search-form">
+        <div>
+            <label for="id_content_type">Тип контента:</label>
+            <select id="id_content_type" name="content_type">
+                <option value="all" {% if request.GET.content_type == 'all' %}selected{% endif %}>Все</option>
+                <option value="news" {% if request.GET.content_type == 'news' %}selected{% endif %}>Новости</option>
+                <option value="articles" {% if request.GET.content_type == 'articles' %}selected{% endif %}>Статьи</option>
+            </select>
+        </div>
+        <div>
+            <label for="id_title">Название:</label>
+            <input type="text" id="id_title" name="title" value="{{ request.GET.title }}">
+        </div>
+        <div>
+            <label for="id_author">Автор:</label>
+            <input type="text" id="id_author" name="author" value="{{ request.GET.author }}">
+        </div>
+        <div>
+            <label for="id_date_after">Дата после:</label>
+            <input type="date" id="id_date_after" name="date_after" value="{{ request.GET.date_after }}">
+        </div>
+        <div>
+            <label for="id_date_before">Дата до:</label>
+            <input type="date" id="id_date_before" name="date_before" value="{{ request.GET.date_before }}">
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Поиск</button>
+            <a href="{% url 'news_search' %}" class="btn btn-secondary">Сбросить</a>
+        </div>
+    </form>
+
+    <h2 style="margin-bottom: 20px;">Результаты поиска</h2>
+    <div class="news-list">
+        {% for item in results %}
+            <div class="news-card">
+                <div class="news-title">
+                    <a href="{% if item.is_article %}{% url 'article_detail' item.id %}{% else %}{% url 'news_detail' item.id %}{% endif %}">
+                        {{ item.title|censor }}
+                        <span class="content-type-badge">
+                            {% if item.is_article %}Статья{% else %}Новость{% endif %}
+                        </span>
+                    </a>
+                </div>
+                <div class="news-preview">
+                    {{ item.content|censor|truncatechars:100 }}
+                </div>
+                <div class="news-meta">
+                    <span><i class="fa fa-user"></i>
+                        {% if item.author.get_full_name %}
+                            {{ item.author.get_full_name }}
+                        {% else %}
+                            {{ item.author.username }}
+                        {% endif %}
+                    </span>
+                    <span><i class="fa fa-calendar"></i>
+                        {% if item.is_article %}
+                            {{ item.pub_date|date:"Y-m-d" }}
+                        {% else %}
+                            {{ item.created_at|date:"Y-m-d" }}
+                        {% endif %}
+                    </span>
+                    {% if item.is_article and item.categories.all %}
+                    <span><i class="fa fa-tags"></i>
+                        {% for category in item.categories.all %}
+                            {{ category.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                    {% endif %}
+                </div>
+
+
+                {% if user.is_authenticated and user == item.author or user.is_superuser %}
+                <div class="news-actions">
+                    <a href="{% if item.is_article %}{% url 'edit_article' item.id %}{% else %}{% url 'edit_news' item.id %}{% endif %}"
+                       class="btn btn-edit">
+                        <i class="fa fa-edit"></i> Редактировать
+                    </a>
+                    <a href="{% if item.is_article %}{% url 'delete_article' item.id %}{% else %}{% url 'news_delete' item.id %}{% endif %}"
+                       class="btn btn-delete"
+                       onclick="return confirm('Вы уверены?')">
+                        <i class="fa fa-trash"></i> Удалить
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="no-results">Ничего не найдено.</div>
         {% endfor %}
-    </ul>
-{% endif %}
+    </div>
+</div>
 
-<form method="get">
-    <label for="title">Название:</label>
-    <input type="text" id="title" name="title" value="{{ request.GET.title }}">
+<style>
+    /* Основные стили */
+    .news-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+    }
 
-    <label for="author">Автор:</label>
-    <input type="text" id="author" name="author" value="{{ request.GET.author }}">
+    .news-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
 
-    <label for="date">Дата (YYYY-MM-DD):</label>
-    <input type="date" id="date" name="date" value="{{ request.GET.date }}">
+    .news-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
 
-    <button type="submit">Поиск</button>
-</form>
+    /* Карточка новости */
+    .news-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        transition: transform 0.3s ease;
+    }
 
-<h2>Результаты поиска</h2>
-<ul>
-    {% for news_item in news %}
-        <li>
-            <h2>{{ news_item.title|censor }}</h2>
-            <p><small>Автор: {{ news_item.author.name }}, Дата: {{ news_item.created_at|date:"Y-m-d" }}</small></p>
-            <p>{{ news_item.content|censor|truncatechars:100 }}</p>
-        </li>
-    {% endfor %}
-</ul>
+    .news-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .news-title a {
+        color: #2c3e50;
+        text-decoration: none;
+        font-size: 1.4em;
+    }
+
+    .news-title a:hover {
+        color: #4285f4;
+    }
+
+    .news-preview {
+        color: #555;
+        margin: 10px 0;
+        line-height: 1.5;
+    }
+
+    .news-meta {
+        display: flex;
+        gap: 15px;
+        font-size: 0.9em;
+        color: #7f8c8d;
+        margin-top: 15px;
+    }
+
+    .news-meta i {
+        margin-right: 5px;
+    }
+
+    /* Кнопки */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        border-radius: 6px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-add-news {
+        background-color: #34a853;
+        color: white;
+    }
+
+    .btn-add-news:hover {
+        background-color: #2d9248;
+        transform: translateY(-2px);
+    }
+
+    .btn-delete {
+        background-color: #ea4335;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #d33426;
+    }
+
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 40px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        padding: 8px 12px;
+        background: #f8f9fa;
+        color: #4285f4;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background: #e0e0e0;
+    }
+
+    .current-page {
+        padding: 8px 12px;
+        background: #4285f4;
+        color: white;
+        border-radius: 4px;
+    }
+
+    /* Иконки */
+    i {
+        font-size: 0.9em;
+    }
+
+    /* Форма поиска */
+    .news-search-form {
+        background: #f9fafb;
+        border-radius: 10px;
+        box-shadow: 0 1px 6px rgba(120,140,200,.07);
+        padding: 18px 20px 10px 20px;
+        margin-bottom: 35px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px 30px;
+        align-items: flex-end;
+    }
+    .news-search-form label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 1rem;
+        color: #293754;
+        font-weight: 500;
+    }
+    .news-search-form input[type="text"],
+    .news-search-form input[type="date"] {
+        width: 210px;
+        padding: 10px 13px;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: 1px solid #ced5de;
+        background-color: #fff;
+        transition: border .2s;
+        outline: none;
+    }
+    .news-search-form input[type="text"]:focus,
+    .news-search-form input[type="date"]:focus {
+        border: 1.5px solid #4285f4;
+        background-color: #f7fbff;
+    }
+    .news-search-form button[type="submit"] {
+        background: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 7px;
+        padding: 11px 26px;
+        font-size: 1.08rem;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(90,110,200,.08);
+        transition: background .23s, transform .12s;
+    }
+    .news-search-form button[type="submit"]:hover,
+    .news-search-form button[type="submit"]:focus {
+        background: #266fd1;
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    /* Сообщения */
+    .messages {
+        margin: 0 0 22px 0;
+        padding: 0;
+        list-style: none;
+    }
+    .messages li {
+        background: #f3f6ff;
+        border-left: 4px solid #85a1fa;
+        margin-bottom: 8px;
+        padding: 9px 15px;
+        border-radius: 8px;
+        color: #4d608b;
+        font-size: 0.99rem;
+    }
+</style>
 {% endblock %}

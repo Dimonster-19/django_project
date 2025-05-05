@@ -1,0 +1,14 @@
+{% extends "account/base.html" %}
+
+{% block content %}
+<h2>Установка нового пароля</h2>
+{% if token_fail %}
+  <p>Недействительная ссылка. Возможно, она уже была использована.</p>
+{% else %}
+  <form method="POST" action="{{ action_url }}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Установить пароль</button>
+  </form>
+{% endif %}
+{% endblock %}

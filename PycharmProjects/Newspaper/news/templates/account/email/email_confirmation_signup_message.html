@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Добро пожаловать на {{ site_name }}</title>
+</head>
+<body>
+    <h1>Добро пожаловать на {{ site_name }}!</h1>
+
+    <p>Пожалуйста, подтвердите ваш email адрес, нажав на кнопку ниже:</p>
+
+    <a href="{{ activate_url }}" style="
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 5px;
+    ">Подтвердить Email</a>
+
+    <p>Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.</p>
+
+    <p>Спасибо!<br>
+    Команда {{ site_name }}</p>
+</body>
+</html>

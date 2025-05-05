@@ -14,33 +14,61 @@
         </div>
         {% endif %}
 
-        <form method="post" novalidate class="auth-form">
-            {% csrf_token %}
+        <!-- Измененная форма для использования allauth -->
+        <form method="post" action="{% url 'account_login' %}" novalidate class="auth-form">
+    {% csrf_token %}
 
-            <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">
-                    <i class="fas fa-user"></i> Имя пользователя
-                </label>
-                {{ form.username }}
-            </div>
+    <!-- Ошибки формы (если есть) -->
+    {% if form.non_field_errors %}
+    <div class="auth-alert">
+        <i class="fas fa-exclamation-circle"></i>
+        {% for error in form.non_field_errors %}
+            {{ error }}
+        {% endfor %}
+    </div>
+    {% endif %}
 
-            <div class="form-group">
-                <label for="{{ form.password.id_for_label }}">
-                    <i class="fas fa-lock"></i> Пароль
-                </label>
-                {{ form.password }}
-            </div>
+    <!-- Поле для ввода логина (email или username) -->
+    <div class="form-group">
+        <label for="id_login">
+            <i class="fas fa-user"></i>
+            {% if 'email' in ACCOUNT_AUTHENTICATION_METHOD or 'email' in ACCOUNT_AUTHENTICATION_METHODS %}
+                Email
+            {% else %}
+                Имя пользователя
+            {% endif %}
+        </label>
+        <input type="text" name="login" id="id_login" placeholder="Введите email или имя пользователя" required>
+    </div>
 
-            <button type="submit" class="btn btn-auth">
-                <i class="fas fa-sign-in-alt"></i> Войти
-            </button>
-        </form>
+    <!-- Поле для ввода пароля -->
+    <div class="form-group">
+        <label for="id_password">
+            <i class="fas fa-lock"></i> Пароль
+        </label>
+        <input type="password" name="password" id="id_password" placeholder="Пароль" required>
+    </div>
+
+    <!-- Чекбокс "Запомнить меня" -->
+    <div class="form-group remember">
+        <label for="id_remember">
+            <input type="checkbox" name="remember" id="id_remember"> Запомнить меня
+        </label>
+    </div>
+
+    <!-- Кнопка входа -->
+    <button type="submit" class="btn btn-auth">
+        <i class="fas fa-sign-in-alt"></i> Войти
+    </button>
+</form>
 
         <div class="auth-links">
-            <a href="{% url 'register' %}" class="auth-link">
+            <!-- Измененная ссылка на регистрацию -->
+            <a href="{% url 'account_signup' %}" class="auth-link">
                 <i class="fas fa-user-plus"></i> Регистрация
             </a>
-            <a href="{% url 'password_reset' %}" class="auth-link">
+            <!-- Измененная ссылка на сброс пароля -->
+            <a href="{% url 'account_reset_password' %}" class="auth-link">
                 <i class="fas fa-key"></i> Забыли пароль?
             </a>
         </div>
@@ -58,7 +86,7 @@
                    {% if provider.id == "yandex" %}
                    <i class="fab fa-yandex"></i>
                    {% elif provider.id == "google" %}
-                   <i class="fab fa-google"></i>
+                   <i class="fas fa-google"></i>
                    {% endif %}
                    {{provider.name}}
                 </a>

@@ -3,9 +3,24 @@
 {% block content %}
 <div class="profile-container">
     <h2>Личный кабинет</h2>
+
     {% if is_author %}
     <div class="alert alert-success">
         <i class="fas fa-check-circle"></i> Вы являетесь автором
+    </div>
+    {% endif %}
+
+    {# Добавьте проверку email, если нужно #}
+    {% if user.emailaddress_set.all %}
+    <div class="email-status">
+        <strong>Email:</strong> {{ user.email }}
+        {% for emailaddress in user.emailaddress_set.all %}
+            {% if emailaddress.verified %}
+                <span class="verified-badge"><i class="fas fa-check-circle"></i> Подтверждён</span>
+            {% else %}
+                <span class="unverified-badge"><i class="fas fa-exclamation-circle"></i> Не подтверждён</span>
+            {% endif %}
+        {% endfor %}
     </div>
     {% endif %}
 
@@ -14,14 +29,12 @@
         {% if user.first_name %}
             <p><strong>Имя:</strong> {{ user.first_name }}</p>
         {% endif %}
-        {% if user.email %}
-            <p><strong>Email:</strong> {{ user.email }}</p>
-        {% endif %}
         <p><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</p>
     </div>
 
     <div class="action-buttons">
         <a href="{% url 'hello' %}" class="btn btn-main">На главную страницу</a>
+
         {% if not is_author %}
         <div class="mt-4">
              <a href="{% url 'become_author' %}" class="btn btn-success">
@@ -29,12 +42,21 @@
              </a>
         </div>
         {% endif %}
+
         <div class="profile-actions">
-            <form action="{% url 'logout' %}" method="post" class="logout-form">
+            {# Исправленная форма выхода #}
+            <form action="{% url 'account_logout' %}" method="post">
                 {% csrf_token %}
+                {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+                {% endif %}
                 <button type="submit" class="btn btn-logout">Выйти из аккаунта</button>
             </form>
-            <a href="{% url 'password_change' %}" class="btn btn-change-password">Сменить пароль</a>
+
+            {# Исправленная ссылка на смену пароля #}
+            <a href="{% url 'account_change_password' %}" class="btn btn-change-password">
+                Сменить пароль
+            </a>
         </div>
     </div>
 </div>

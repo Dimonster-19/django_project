@@ -5,7 +5,7 @@ register = template.Library()
 
 # Список нежелательных сочетаний букв
 BAD_PATTERNS = [
-    r'бля',        # Простой пример
+    r'блят',        # Простой пример
     r'сука',
     r'еба',
     r'муда',
@@ -25,3 +25,11 @@ def censor(value):
         regex_pattern = re.compile(pattern, re.IGNORECASE)  # Игнорирование регистра
         value = regex_pattern.sub(lambda x: '*' * len(x.group()), value)
     return value
+
+@register.filter
+def get_class(value):
+    return value.__class__.__name__
+
+@register.filter
+def is_article(obj):
+    return hasattr(obj, 'pub_date')

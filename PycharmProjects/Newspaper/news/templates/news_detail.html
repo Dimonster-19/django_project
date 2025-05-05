@@ -31,10 +31,10 @@
     <div class="d-flex justify-content-between mt-4">
         <div class="news-actions">
             {% if user|in_group:'Authors' and user == post.author or user.is_superuser %}
-            <a href="{% url 'edit_article' post.id %}" class="btn btn-primary">
+            <a href="{% url 'edit_news' post.id %}" class="btn btn-primary">
                 <i class="fas fa-edit"></i> Редактировать
             </a>
-            <a href="{% url 'delete_article' post.id %}" class="btn btn-danger">
+            <a href="{% url 'news_delete' post.id %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить
             </a>
             {% endif %}
