@@ -16,30 +16,47 @@
             </a>
         {% endif %}
 
-        <a href="{% url 'news_search' %}" class="btn btn-search">
-            <i class="fas fa-search"></i> Поиск
-        </a>
+        <form action="{% url 'news_search' %}" method="get" class="search-form">
+            <button type="submit" class="btn btn-search">
+                <i class="fas fa-search"></i> Поиск контента
+            </button>
+        </form>
 
         {% if user|in_group:'Authors' %}
             <div class="add-buttons">
                 <a href="{% url 'create' %}" class="btn btn-add">
                     <i class="fas fa-plus-circle"></i> Добавить новость
                 </a>
-                <a href="{% url 'create_article' %}" class="btn btn-add">
-                    <i class="fas fa-plus-circle"></i> Добавить статью
+                <a href="{% url 'articles' %}" class="btn btn-articles">
+                    <i class="fas fa-book-open"></i> Перейти к статьям
                 </a>
             </div>
         {% endif %}
     </div>
 
-    <!-- Блок категорий -->
+    <!-- Блок категорий с подписками -->
     <div class="categories-section">
-        <h2>Категории</h2>
+        <h2>Категории новостей</h2>
         <div class="categories-list">
+            <a href="{% url 'news' %}" class="category-btn {% if not current_category %}active{% endif %}">
+                <i class="fas fa-newspaper"></i> Все новости
+            </a>
             {% for category in categories %}
-                <a href="{% url 'category_news' category.name %}" class="category-btn">
+            <div class="category-item">
+                <a href="{% url 'category_news' category.name %}"
+                   class="category-btn {% if current_category == category.name %}active{% endif %}">
                     <i class="fas fa-tag"></i> {{ category.name }}
                 </a>
+
+                {% if user.is_authenticated %}
+                <form class="subscription-form"
+                      action="{% url 'subscribe_category' category.id %}"
+                      method="post">
+                    {% csrf_token %}
+
+                </form>
+                {% endif %}
+            </div>
             {% endfor %}
         </div>
     </div>
@@ -59,11 +76,7 @@
                 <div class="news-meta">
                     <span class="news-date">
                         <i class="far fa-calendar-alt"></i>
-                        {% if item.is_article %}
-                            {{ item.pub_date|date:"d M Y" }}
-                        {% else %}
-                            {{ item.created_at|date:"d M Y" }}
-                        {% endif %}
+                        {{ item.created_at|date:"d M Y" }}
                     </span>
                     <span class="news-author">
                         <i class="fas fa-user"></i>
@@ -100,7 +113,7 @@
         </div>
         {% empty %}
         <div class="no-news-message">
-            <p>Контент отсутствует.</p>
+            <i class="fas fa-info-circle"></i> Контент отсутствует.
         </div>
         {% endfor %}
     </div>
@@ -123,37 +136,148 @@
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка подписки на категории
+    document.querySelectorAll('.subscription-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const button = form.querySelector('button');
+            const icon = form.querySelector('i');
+            const text = form.querySelector('.subscribe-text');
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'subscribed') {
+                    button.classList.add('active');
+                    icon.classList.remove('fa-bell-slash');
+                    icon.classList.add('fa-bell');
+                    text.textContent = 'Отписаться';
+                } else {
+                    button.classList.remove('active');
+                    icon.classList.remove('fa-bell');
+                    icon.classList.add('fa-bell-slash');
+                    text.textContent = 'Подписаться';
+                }
+
+                // Toast-уведомление
+                if (typeof showToast === 'function') {
+                    showToast(data.message);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при обработке запроса');
+            });
+        });
+    });
+
+    // Обработка подписки через AJAX (если у вас есть другие формы подписки)
+    document.querySelectorAll('.ajax-subscription-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'subscribed') {
+                    form.action = form.action.replace('subscribe', 'unsubscribe');
+                    form.querySelector('button').classList.replace('btn-subscribe', 'btn-unsubscribe');
+                    form.querySelector('i').classList.replace('fa-bell', 'fa-bell-slash');
+                } else {
+                    form.action = form.action.replace('unsubscribe', 'subscribe');
+                    form.querySelector('button').classList.replace('btn-unsubscribe', 'btn-subscribe');
+                    form.querySelector('i').classList.replace('fa-bell-slash', 'fa-bell');
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast(data.message);
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+    });
+});
+</script>
+
 <style>
+
+
+
+    /* Основные стили с голубым градиентом и широким контейнером */
+    .news-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 30px;
+        background: linear-gradient(to bottom, #e3f2fd 0%, #f5fbff 100%);
+        min-height: 100vh;
+        border-radius: 15px;
+        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    }
+
     /* Стили для категорий */
     .categories-section {
-        margin: 20px 0;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid #bbdefb;
+    }
+
+    .categories-section h2 {
+        color: #1976d2;
+        margin-bottom: 15px;
+        font-size: 1.4em;
     }
 
     .categories-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 10px;
+        gap: 12px;
+        margin-top: 15px;
     }
 
     .category-btn {
         display: inline-flex;
         align-items: center;
-        padding: 8px 15px;
-        background-color: #3498db;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
         color: white;
-        border-radius: 20px;
+        border-radius: 25px;
         text-decoration: none;
-        transition: all 0.3s;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: none;
     }
 
     .category-btn:hover {
-        background-color: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(30, 136, 229, 0.3);
+    }
+
+    .category-btn.active {
+        background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     }
 
     .category-btn i {
@@ -162,113 +286,219 @@
 
     .category-tag {
         display: inline-block;
-        background: #e0e0e0;
-        padding: 2px 8px;
-        border-radius: 10px;
+        background: #e3f2fd;
+        padding: 4px 10px;
+        border-radius: 12px;
         font-size: 0.8em;
-        margin-right: 5px;
+        margin-right: 6px;
+        color: #1565c0;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    /* Остальные стили остаются без изменений */
+    /* Блок управления */
     .news-controls {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 15px;
+        margin-bottom: 25px;
         flex-wrap: wrap;
-    }
-
-    /* Основные стили */
-    .news-container {
-        max-width: 800px;
-        margin: 40px auto;
-        padding: 20px;
-    }
-
-    .news-header {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
+    .search-form {
+        display: flex;
+        flex-grow: 1;
+        max-width: 500px;
+    }
+
+    .search-form input {
+        flex-grow: 1;
+        padding: 12px 15px;
+        border: 1px solid #bbdefb;
+        border-radius: 8px 0 0 8px;
+        border-right: none;
+        font-size: 1em;
+        transition: all 0.3s ease;
+    }
+
+    .search-form input:focus {
+        outline: none;
+        border-color: #64b5f6;
+        box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+    }
+
+    .search-form button {
+        border-radius: 0 8px 8px 0;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .add-buttons {
+        display: flex;
+        gap: 15px;
+        margin-left: auto;
+    }
+
+    /* Список новостей */
     .news-list {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 25px;
     }
 
     /* Карточка новости */
     .news-card {
         background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        padding: 20px;
-        transition: transform 0.3s ease;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+        padding: 25px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border-left: 4px solid #64b5f6;
     }
 
     .news-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
     }
 
     .news-title a {
-        color: #2c3e50;
+        color: #1565c0;
         text-decoration: none;
-        font-size: 1.4em;
+        font-size: 1.5em;
+        font-weight: 600;
+        transition: color 0.3s ease;
     }
 
     .news-title a:hover {
-        color: #4285f4;
+        color: #0d47a1;
     }
 
     .news-preview {
-        color: #555;
-        margin: 10px 0;
-        line-height: 1.5;
+        color: #546e7a;
+        margin: 15px 0;
+        line-height: 1.6;
+        font-size: 1.05em;
     }
 
     .news-meta {
         display: flex;
-        gap: 15px;
+        flex-wrap: wrap;
+        gap: 20px;
         font-size: 0.9em;
-        color: #7f8c8d;
-        margin-top: 15px;
+        color: #42a5f5;
+        margin-top: 18px;
     }
 
     .news-meta i {
-        margin-right: 5px;
+        margin-right: 6px;
+        color: #64b5f6;
+    }
+
+    .news-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e3f2fd;
     }
 
     /* Кнопки */
     .btn {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
-        padding: 10px 15px;
-        border-radius: 6px;
+        padding: 12px 20px;
+        border-radius: 8px;
         font-weight: 500;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         border: none;
         cursor: pointer;
+        font-size: 1em;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
     }
 
-    .btn-add-news {
-        background-color: #34a853;
+    .btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .btn:hover::after {
+        transform: translateX(0);
+    }
+
+    .btn-profile {
+        background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);
         color: white;
     }
 
-    .btn-add-news:hover {
-        background-color: #2d9248;
-        transform: translateY(-2px);
+    .btn-profile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(123, 31, 162, 0.3);
+    }
+
+    .btn-add {
+        background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
+        color: white;
+    }
+
+    .btn-add:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(25, 118, 210, 0.3);
+    }
+
+    .btn-articles {
+        background: linear-gradient(135deg, #00838f 0%, #00acc1 100%);
+        color: white;
+    }
+
+    .btn-articles:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 131, 143, 0.3);
+    }
+
+    .btn-search {
+        background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+        color: white;
+    }
+
+    .btn-search:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(21, 101, 192, 0.3);
+    }
+
+    .btn-edit {
+        background: linear-gradient(135deg, #ffa000 0%, #ffc107 100%);
+        color: white;
+    }
+
+    .btn-edit:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(255, 160, 0, 0.3);
     }
 
     .btn-delete {
-        background-color: #ea4335;
+        background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
         color: white;
     }
 
     .btn-delete:hover {
-        background-color: #d33426;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
     }
 
     /* Пагинация */
@@ -276,34 +506,65 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-top: 40px;
-        gap: 10px;
+        margin-top: 50px;
+        gap: 12px;
         flex-wrap: wrap;
     }
 
     .page-link {
-        padding: 8px 12px;
-        background: #f8f9fa;
-        color: #4285f4;
-        border-radius: 4px;
+        padding: 10px 15px;
+        background: #ffffff;
+        color: #1976d2;
+        border-radius: 8px;
         text-decoration: none;
         transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border: 1px solid #bbdefb;
     }
 
     .page-link:hover {
-        background: #e0e0e0;
+        background: #e3f2fd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        color: #1565c0;
     }
 
     .current-page {
-        padding: 8px 12px;
-        background: #4285f4;
+        padding: 10px 15px;
+        background: #42a5f5;
         color: white;
-        border-radius: 4px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
-    /* Иконки */
-    i {
-        font-size: 0.9em;
+    /* Сообщение об отсутствии контента */
+    .no-news-message {
+        padding: 40px;
+        text-align: center;
+        color: #1976d2;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        margin: 30px 0;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+        font-size: 1.1em;
+    }
+
+    .no-news-message i {
+        font-size: 2em;
+        margin-bottom: 15px;
+        color: #64b5f6;
+        display: block;
+    }
+
+    /* Анимация для кнопок */
+    @keyframes buttonPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .btn:hover {
+        animation: buttonPulse 0.5s ease;
     }
 </style>
 

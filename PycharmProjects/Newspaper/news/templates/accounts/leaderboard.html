@@ -1,0 +1,91 @@
+<div class="leaderboard-section">
+    <h3><i class="fas fa-trophy"></i> Таблица лидеров</h3>
+
+    <div class="leaderboard-header">
+        <span>Место</span>
+        <span>Автор</span>
+        <span>Новости</span>
+        <span>Статьи</span>
+        <span>Всего</span>
+    </div>
+
+    {% for author in leaderboard %}
+    <div class="leaderboard-row {% if author.user == user %}current-user{% endif %}">
+        <span class="rank">{{ forloop.counter }}</span>
+        <span class="author-name">
+            {% if author.user.get_full_name %}
+                {{ author.user.get_full_name }}
+            {% else %}
+                {{ author.user.username }}
+            {% endif %}
+        </span>
+        <span class="stat">{{ author.news_count }}</span>
+        <span class="stat">{{ author.articles_count }}</span>
+        <span class="total">{{ author.total_publications }}</span>
+    </div>
+    {% endfor %}
+
+    {% if user_position %}
+    <div class="user-position">
+        Ваше место: {{ user_position }}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+  .leaderboard-section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-top: 30px;
+}
+
+.leaderboard-header {
+    display: grid;
+    grid-template-columns: 50px 2fr 1fr 1fr 1fr;
+    font-weight: bold;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.leaderboard-row {
+    display: grid;
+    grid-template-columns: 50px 2fr 1fr 1fr 1fr;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+    align-items: center;
+}
+
+.leaderboard-row.current-user {
+    background-color: #f0f7ff;
+    font-weight: 500;
+}
+
+.rank {
+    font-weight: bold;
+    color: #555;
+}
+
+.author-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat, .total {
+    text-align: center;
+}
+
+.total {
+    font-weight: bold;
+    color: #2c7be5;
+}
+
+.user-position {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+    font-style: italic;
+    text-align: center;
+}
+</style>

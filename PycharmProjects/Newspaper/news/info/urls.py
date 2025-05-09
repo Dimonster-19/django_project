@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (news_list, news_detail, delete_news, news_search, create_news,
                     edit_news, article_list, create_article, edit_article, delete_article,
                     article_detail, hello, category_news, article_search,
-                    subscribe_category, unsubscribe_category
+                    subscribe_category, category_articles
 
 )
 urlpatterns = [
@@ -17,7 +17,7 @@ urlpatterns = [
 
     path('category/<str:category_name>/', category_news, name='category_news'),
     path('category/<int:category_id>/subscribe/', subscribe_category, name='subscribe_category'),
-    path('category/<int:category_id>/unsubscribe/', unsubscribe_category, name='unsubscribe_category'),
+    path('articles/category/<str:category_name>/', category_articles, name='category_articles'),
 
     path('articles/', article_list, name='articles'),
     path('articles/<int:article_id>/', article_detail, name='article_detail'),

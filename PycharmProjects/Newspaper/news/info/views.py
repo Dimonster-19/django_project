@@ -1,15 +1,17 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView
-from .models import Post, Article, Category, PostCategory
+from .models import Post, Article, Category, PostCategory, Author
 from django.contrib import messages
 from django.db import models
-from django.db.models import Count, Q
-from .forms import PostForm, ArticleForm, NewsSearchForm
+from django.db.models import Count, Q, Exists, OuterRef, Value
+from .forms import PostForm, ArticleForm, NewsSearchForm, ArticleFilterForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import PermissionDenied
 from itertools import chain
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.contrib.auth.models import Group, User
+
 import logging
 
 # Использование class-based views:
@@ -31,30 +33,68 @@ def news_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Разные querysets, если нужно
+    simple_news = posts.filter(type=Post.NEWS)
+    articles = posts.filter(type=Post.ARTICLE)
+
     return render(request, 'news.html', {
         'page_obj': page_obj,
+        'simple_news': simple_news,
+        'articles': articles,
         'categories': Category.objects.all()
     })
 
-def article_list(request):
-    category_name = request.GET.get('category')
-    articles = Article.objects.all()
 
+
+def article_list(request):
+    filter_form = ArticleFilterForm(request.GET or None)
+    articles = Article.objects.all().select_related('author').prefetch_related('categories')
+
+    # Фильтр по категории
+    category_name = request.GET.get('category')
     if category_name:
         articles = articles.filter(categories__name=category_name)
 
-    all_categories = Category.objects.annotate(article_count=Count('articles'))
-    articles = articles.order_by('-pub_date')
+    # Применение остальных фильтров (если нет фильтра категории)
+    if filter_form.is_valid() and not category_name:
+        data = filter_form.cleaned_data
+        if data.get('title'):
+            articles = articles.filter(title__icontains=data['title'])
+        if data.get('author'):
+            articles = articles.filter(author=data['author'])
+        if data.get('date_after'):
+            articles = articles.filter(pub_date__gte=data['date_after'])
+        if data.get('date_before'):
+            articles = articles.filter(pub_date__lte=data['date_before'])
+        if data.get('categories'):
+            articles = articles.filter(categories__in=data['categories']).distinct()
 
-    paginator = Paginator(articles, 5)
+    # Пагинация
+    paginator = Paginator(articles.order_by('-pub_date'), 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    # Категории с информацией о подписке
+    if request.user.is_authenticated:
+        all_categories = Category.objects.annotate(
+            article_count=Count('articles'),
+            is_subscribed=Exists(
+                request.user.subscribed_categories.filter(id=OuterRef('pk'))
+            )
+        )
+    else:
+        all_categories = Category.objects.annotate(
+            article_count=Count('articles'),
+            is_subscribed=Value(False)
+        )
 
     return render(request, 'articles.html', {
         'page_obj': page_obj,
         'all_categories': all_categories,
-        'current_category': category_name
+        'filter_form': filter_form,
+        'current_category': category_name,
     })
+
 
 def news_detail(request, news_id):
     post = get_object_or_404(Post, pk=news_id)
@@ -299,37 +339,132 @@ def hello(request):
 
 def category_news(request, category_name):
     category = get_object_or_404(Category, name=category_name)
-    news_in_category = Post.objects.filter(categories=category)
-    articles_in_category = Article.objects.filter(categories=category)
 
-    # Добавляем правильное поле даты для каждого объекта
-    combined = []
-    for item in chain(news_in_category, articles_in_category):
-        if hasattr(item, 'created_at'):  # Для новостей
-            item.sort_date = item.created_at
-        elif hasattr(item, 'pub_date'):  # Для статей
-            item.sort_date = item.pub_date
-        combined.append(item)
+    # Основной запрос с distinct() для устранения дубликатов
+    news = Post.objects.filter(
+        categories=category,
+        type=Post.NEWS
+    ).order_by('-created_at').distinct()
 
-    # Сортируем по добавленному полю sort_date
-    combined_sorted = sorted(combined, key=lambda obj: obj.sort_date, reverse=True)
+    # Фильтрация
+    filter_form = ArticleFilterForm(request.GET or None)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+        if data.get('title'):
+            news = news.filter(title__icontains=data['title'])
+        if data.get('author'):
+            news = news.filter(author=data['author'])
+        if data.get('date_after'):
+            news = news.filter(created_at__gte=data['date_after'])
+        if data.get('date_before'):
+            news = news.filter(created_at__lte=data['date_before'])
+
+    # Пагинация
+    paginator = Paginator(news, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Категории с аннотациями
+    if request.user.is_authenticated:
+        all_categories = Category.objects.annotate(
+            news_count=Count('post', filter=Q(post__type=Post.NEWS), distinct=True),
+            is_subscribed=Exists(
+                request.user.subscribed_categories.filter(id=OuterRef('pk'))
+            ),
+        )
+    else:
+        all_categories = Category.objects.annotate(
+            news_count=Count('post', filter=Q(post__type=Post.NEWS), distinct=True),
+            is_subscribed=Value(False),
+        )
 
     return render(request, 'news.html', {
-        'page_obj': combined_sorted,
-        'selected_category': category,
+        'page_obj': page_obj,
+        'all_categories': all_categories,
+        'filter_form': filter_form,
+        'current_category': category_name,
+    })
+
+
+def category_articles(request, category_name):
+    category = get_object_or_404(Category, name=category_name)
+    articles = Article.objects.filter(categories=category).order_by('-pub_date').distinct()  # избавляемся от дублей
+
+    filter_form = ArticleFilterForm(request.GET or None)
+    if filter_form.is_valid():
+        data = filter_form.cleaned_data
+        if data.get('title'):
+            articles = articles.filter(title__icontains=data['title'])
+        if data.get('author'):
+            articles = articles.filter(author=data['author'])
+        if data.get('date_after'):
+            articles = articles.filter(pub_date__gte=data['date_after'])
+        if data.get('date_before'):
+            articles = articles.filter(pub_date__lte=data['date_before'])
+
+    paginator = Paginator(articles, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    if request.user.is_authenticated:
+        all_categories = Category.objects.annotate(
+            article_count=Count('articles', distinct=True),
+            is_subscribed=Exists(
+                request.user.subscribed_categories.filter(id=OuterRef('pk'))
+            ),
+        )
+    else:
+        all_categories = Category.objects.annotate(
+            article_count=Count('articles', distinct=True),
+            is_subscribed=Value(False),
+        )
+
+    return render(request, 'articles.html', {
+        'page_obj': page_obj,
+        'all_categories': all_categories,
+        'filter_form': filter_form,
+        'current_category': category_name,
     })
 
 
 @login_required
 def subscribe_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
-    category.subscribers.add(request.user)
-    messages.success(request, f'Вы подписались на категорию "{category.name}"')
+
+    if request.method != "POST":
+        return HttpResponseBadRequest("Only POST allowed")
+
+    is_subscribed = category.subscribers.filter(id=request.user.id).exists()
+
+    if is_subscribed:
+        category.subscribers.remove(request.user)
+        status = 'unsubscribed'
+        message = f'Вы отписались от категории "{category.name}"'
+    else:
+        category.subscribers.add(request.user)
+        status = 'subscribed'
+        message = f'Вы подписались на категорию "{category.name}"'
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'status': status,
+            'message': message,
+            'count': request.user.subscribed_categories.count()
+        })
+
+    messages.success(request, message)
     return redirect('articles')
 
-@login_required
-def unsubscribe_category(request, category_id):
-    category = get_object_or_404(Category, id=category_id)
-    category.subscribers.remove(request.user)
-    messages.success(request, f'Вы отписались от категории "{category.name}"')
-    return redirect('articles')
+
+def leaderboard(request):
+    authors = Author.objects.annotate(
+        total_pubs=models.Count('news') + models.Count('articles')
+    ).order_by('-total_pubs')[:10]
+
+    context = {
+        'leaderboard': authors,
+        'user_position': Author.objects.filter(
+            total_pubs__gt=request.user.author.total_pubs
+        ).count() + 1 if hasattr(request.user, 'author') else None
+    }
+    return render(request, 'accounts/leaderboard.html', context)

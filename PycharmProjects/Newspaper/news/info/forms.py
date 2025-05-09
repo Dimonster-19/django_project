@@ -82,8 +82,39 @@ class ArticleForm(forms.ModelForm):
                 'class': 'form-control select2'
             })
         }
+
 class NewsSearchForm(forms.Form):
     title = forms.CharField(required=False, label='Название')
     author = forms.CharField(required=False, label='Автор')
     date_after = forms.DateField(required=False, label='Дата после', widget=forms.DateInput(attrs={'type': 'date'}))
     date_before = forms.DateField(required=False, label='Дата до', widget=forms.DateInput(attrs={'type': 'date'}))
+
+
+class ArticleFilterForm(forms.Form):
+    title = forms.CharField(
+        required=False,
+        label='Название',
+        widget=forms.TextInput(attrs={'placeholder': 'Поиск по названию'})
+    )
+    author = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        label='Автор',
+        empty_label="Все авторы"
+    )
+    date_after = forms.DateField(
+        required=False,
+        label='Дата после',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    date_before = forms.DateField(
+        required=False,
+        label='Дата до',
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Категории'
+    )

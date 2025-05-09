@@ -1,0 +1,242 @@
+{% extends 'default.html' %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-layout">
+        <!-- Основное содержимое -->
+        <div class="profile-main">
+            <div class="back-button">
+                <a href="{% url 'profile' %}" class="btn btn-back">
+                    <i class="fas fa-arrow-left"></i> Назад в профиль
+                </a>
+            </div>
+
+            <h2 class="profile-title">Смена имени пользователя</h2>
+
+            {% if message %}
+            <div class="alert alert-{{ message_type }}">
+                <i class="fas fa-{% if message_type == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <form method="post" class="username-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_username">Текущее имя:</label>
+                    <input type="text" value="{{ request.user.username }}" class="form-control" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_new_username">Новое имя пользователя:</label>
+                    <input type="text" name="new_username" id="id_new_username" 
+                           class="form-control" required
+                           placeholder="Введите новое имя">
+                    {% if form.new_username.errors %}
+                        <div class="error-message">
+                            {% for error in form.new_username.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+            </form>
+        </div>
+
+        <!-- Боковая панель (как в профиле) -->
+        <div class="profile-sidebar">
+            <div class="info-card">
+                <h3><i class="fas fa-info-circle"></i> Информация</h3>
+                <p>Имя пользователя используется для входа в систему и отображается в ваших публикациях.</p>
+                <p>После изменения потребуется войти снова.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Основные стили из profile.html */
+    .profile-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .profile-layout {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 30px;
+    }
+
+    .profile-main {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .profile-title {
+        color: #4a6fa5;
+        margin-bottom: 25px;
+        position: relative;
+        padding-bottom: 10px;
+    }
+
+    .profile-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: #ffd166;
+        border-radius: 3px;
+    }
+
+    /* Стили формы */
+    .username-form {
+        margin-top: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #212529;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #4a6fa5;
+        box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        outline: none;
+    }
+
+    /* Кнопки */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn i {
+        margin-right: 8px;
+    }
+
+    .btn-back {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-back:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4a6fa5 0%, #3a5a80 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #3a5a80 0%, #2a4a70 100%);
+        transform: translateY(-2px);
+    }
+
+    /* Уведомления */
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-success {
+        background: rgba(6, 214, 160, 0.1);
+        color: #05b58b;
+        border-left: 3px solid #05b58b;
+    }
+
+    .alert-error {
+        background: rgba(239, 71, 111, 0.1);
+        color: #d9375c;
+        border-left: 3px solid #d9375c;
+    }
+
+    /* Боковая панель */
+    .profile-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .info-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .info-card h3 {
+        color: #4a6fa5;
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-card p {
+        color: #6c757d;
+        line-height: 1.6;
+    }
+
+    /* Ошибки */
+    .error-message {
+        color: #ef476f;
+        font-size: 0.85rem;
+        margin-top: 5px;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 992px) {
+        .profile-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-sidebar {
+            order: -1;
+        }
+    }
+</style>
+
+<!-- Подключаем Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}

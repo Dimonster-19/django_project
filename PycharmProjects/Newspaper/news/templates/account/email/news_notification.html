@@ -2,14 +2,14 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Новая статья</title>
+    <title>Новая новость</title>
 </head>
 <body>
     <h2>Здравствуйте, {{ user.username }}!</h2>
-    <p>В категории "{{ category.name }}" появилась новая статья:</p>
+    <p>В категории "{{ category.name }}" появилась новость:</p>
     <h3>{{ item.title }}</h3>
-    <p>{{ item.content|truncatechars:200 }}</p>
-    <a href="http://{{ domain }}{% url 'article_detail' item.id %}">
+    <p>{{ item.content|truncatechars:200 }}</p>  <!-- Используем item вместо post -->
+    <a href="http://{{ domain }}{% url 'news_detail' item.id %}">
         Читать полностью
     </a>
     <p>

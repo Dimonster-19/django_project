@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User, Group
 from allauth.account.forms import SignupForm
+from django.core.exceptions import ValidationError
+
 
 
 class UserRegistrationForm(forms.ModelForm):
@@ -23,3 +25,16 @@ class BecomeAuthorForm(forms.Form):
         required=True,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
+
+
+
+class UsernameChangeForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username']
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.exclude(pk=self.instance.pk).filter(username=username).exists():
+            raise ValidationError('Это имя пользователя уже занято.')
+        return username

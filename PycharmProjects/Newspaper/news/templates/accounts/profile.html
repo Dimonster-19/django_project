@@ -1,142 +1,399 @@
 {% extends 'default.html' %}
+{% load static %}
 
 {% block content %}
+<!-- Подключение CSS -->
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+<!-- Подключаем Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <div class="profile-container">
-    <h2>Личный кабинет</h2>
+    <div class="profile-layout">
+        <!-- Левая колонка - основная информация -->
+        <div class="profile-main">
+            <h2 class="profile-title">Личный кабинет</h2>
 
-    {% if is_author %}
-    <div class="alert alert-success">
-        <i class="fas fa-check-circle"></i> Вы являетесь автором
-    </div>
-    {% endif %}
-
-    {# Добавьте проверку email, если нужно #}
-    {% if user.emailaddress_set.all %}
-    <div class="email-status">
-        <strong>Email:</strong> {{ user.email }}
-        {% for emailaddress in user.emailaddress_set.all %}
-            {% if emailaddress.verified %}
-                <span class="verified-badge"><i class="fas fa-check-circle"></i> Подтверждён</span>
-            {% else %}
-                <span class="unverified-badge"><i class="fas fa-exclamation-circle"></i> Не подтверждён</span>
+            {% if is_author %}
+            <div class="author-badge">
+                <i class="fas fa-check-circle"></i> Вы являетесь автором
+            </div>
             {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <div class="user-info">
-        <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
-        {% if user.first_name %}
-            <p><strong>Имя:</strong> {{ user.first_name }}</p>
-        {% endif %}
-        <p><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</p>
-    </div>
+            <div class="user-info">
+                <div class="info-item">
+                    <i class="fas fa-user"></i>
+                    <span class="info-label">Имя пользователя:</span>
+                    <span class="info-value">{{ user.username }}</span>
+                </div>
 
-    <div class="action-buttons">
-        <a href="{% url 'hello' %}" class="btn btn-main">На главную страницу</a>
-
-        {% if not is_author %}
-        <div class="mt-4">
-             <a href="{% url 'become_author' %}" class="btn btn-success">
-                <i class="fas fa-pen-alt"></i> Стать автором
-             </a>
-        </div>
-        {% endif %}
-
-        <div class="profile-actions">
-            {# Исправленная форма выхода #}
-            <form action="{% url 'account_logout' %}" method="post">
-                {% csrf_token %}
-                {% if redirect_field_value %}
-                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+                {% if user.first_name %}
+                <div class="info-item">
+                    <i class="fas fa-signature"></i>
+                    <span class="info-label">Имя:</span>
+                    <span class="info-value">{{ user.first_name }}</span>
+                </div>
                 {% endif %}
-                <button type="submit" class="btn btn-logout">Выйти из аккаунта</button>
-            </form>
 
-            {# Исправленная ссылка на смену пароля #}
-            <a href="{% url 'account_change_password' %}" class="btn btn-change-password">
-                Сменить пароль
-            </a>
+                <div class="info-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-value">{{ user.date_joined|date:"d.m.Y H:i" }}</span>
+                </div>
+            </div>
+
+            <!-- Блок подписок на категории -->
+            <div class="subscriptions-section">
+                <div class="subscriptions-card">
+                    <!-- Шапка с заголовком и кнопкой справа -->
+                    <div class="subscriptions-header">
+                        <h4 class="subscriptions-title">
+                            <i class="fas fa-list"></i> Мои подписки на категории
+                        </h4>
+                        <div class="subscription-manager">
+                            <button class="btn btn-subscription" onclick="toggleSubscriptionDropdown()">
+                                <i class="fas fa-bell"></i> Управление подписками
+                                <span class="badge">{{ user.subscribed_categories.count }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Выпадающее меню подписки на категории -->
+                    <div class="subscription-dropdown" id="subscriptionDropdown">
+                        <div class="dropdown-header">
+                            <h4><i class="fas fa-tags"></i> Доступные категории</h4>
+                            <input type="text" placeholder="Поиск категорий..." class="search-input" id="categorySearch" oninput="filterCategories()">
+                        </div>
+                        <div class="dropdown-categories">
+                            {% for cat in all_categories %}
+                            <div class="category-item">
+                                <span class="category-name">
+                                    {{ cat.name }}
+                                    <span class="post-count">({{ cat.posts_count|default:0 }})</span>
+                                </span>
+                                <form action="{% url 'subscribe_category' cat.id %}" method="post" class="subscription-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if cat.is_subscribed %}btn-unsubscribe{% else %}btn-subscribe{% endif %}">
+                                        {% if cat.is_subscribed %}
+                                            <i class="fas fa-bell-slash"></i>
+                                        {% else %}
+                                            <i class="fas fa-bell"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                            {% empty %}
+                            <div class="no-categories">Нет доступных категорий</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Список текущих подписок -->
+                    {% if user.subscribed_categories.all %}
+                    <ul class="subscriptions-list">
+                        {% for cat in user.subscribed_categories.all %}
+                        <li class="subscription-item">
+                            <div class="category-info">
+                                <i class="fas fa-tag category-icon"></i>
+                                <span class="category-name">{{ cat.name }}</span>
+                            </div>
+                            <span class="category-count">
+                                <i class="fas fa-book"></i> {{ cat.posts.count }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="no-subscriptions">
+                        <i class="fas fa-info-circle"></i> Вы не подписаны ни на одну категорию
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if is_author %}
+            <div class="user-stats">
+                <h4 class="stats-title">Моя статистика</h4>
+                {% if user_stats %}
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.rating|default:"0" }}</span>
+                            <span class="stat-label">Мой рейтинг</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.news_count|default:"0" }}</span>
+                            <span class="stat-label">Мои новости</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.articles_count|default:"0" }}</span>
+                            <span class="stat-label">Мои статьи</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="no-stats">Статистика недоступна</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="action-buttons">
+                <a href="{% url 'hello' %}" class="btn btn-main">
+                    <i class="fas fa-home"></i> На главную
+                </a>
+
+                <form action="{% url 'account_logout' %}" method="post" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </button>
+                </form>
+
+                <a href="{% url 'change_username' %}" class="btn btn-primary">
+                    <i class="fas fa-user-edit"></i> Сменить имя
+                </a>
+
+                {% if not is_author %}
+                <a href="{% url 'become_author' %}" class="btn btn-success">
+                    <i class="fas fa-pen-alt"></i> Стать автором
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Правая колонка - лидерборд -->
+        <div class="profile-sidebar">
+            <div class="leaderboard-card">
+                <div class="leaderboard-header">
+                    <i class="fas fa-trophy trophy-icon"></i>
+                    <h3>Топ авторов</h3>
+                </div>
+
+                <div class="leaderboard-list">
+                    {% for user in leaderboard %}
+                    <div class="leaderboard-item {% if user == request.user %}current-user{% endif %}">
+                        <span class="rank">
+                            {% if forloop.counter <= 3 %}
+                                <i class="fas fa-medal medal-{{ forloop.counter }}"></i>
+                            {% else %}
+                                {{ forloop.counter }}
+                            {% endif %}
+                        </span>
+                        <span class="author-info">
+                            <span class="author-name">{{ user.username }}</span>
+                            <span class="author-stats">
+                                <span class="stat"><i class="fas fa-newspaper"></i> {{ user.post_count|default:"0" }}</span>
+                                <span class="stat"><i class="fas fa-book-open"></i> {{ user.article_count|default:"0" }}</span>
+                            </span>
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="empty-message">
+                        <i class="fas fa-info-circle"></i> Нет данных для отображения
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if user_position %}
+                <div class="user-position">
+                    <div class="position-content">
+                        <i class="fas fa-flag"></i>
+                        <span>Мое место: <strong>{{ user_position }}</strong></span>
+                    </div>
+                    <div class="position-stats">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Мои публикации: {{ user_stats.total_pubs|default:"0" }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
+<script>
+// Управление выпадающим меню подписок
+function toggleSubscriptionDropdown() {
+    const dropdown = document.getElementById('subscriptionDropdown');
+    dropdown.classList.toggle('show');
+}
+
+// Фильтрация категорий
+function filterCategories() {
+    const input = document.getElementById('categorySearch');
+    const filter = input.value.toLowerCase();
+    const items = document.querySelectorAll('.category-item');
+
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(filter) ? 'flex' : 'none';
+    });
+}
+
+// Закрытие меню при клике вне его области
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('subscriptionDropdown');
+    const btn = document.querySelector('.btn-subscription');
+
+    if (!dropdown.contains(event.target) && event.target !== btn && !btn.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+// AJAX-подписка
+document.querySelectorAll('.subscription-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const button = form.querySelector('button');
+        const badge = document.querySelector('.btn-subscription .badge');
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'subscribed') {
+                button.classList.replace('btn-subscribe', 'btn-unsubscribe');
+                button.innerHTML = '<i class="fas fa-bell-slash"></i>';
+            } else {
+                button.classList.replace('btn-unsubscribe', 'btn-subscribe');
+                button.innerHTML = '<i class="fas fa-bell"></i>';
+            }
+
+            if (badge && data.count !== undefined) {
+                badge.textContent = data.count;
+            }
+
+            if (typeof showToast === 'function') {
+                showToast(data.message);
+            }
+        });
+    });
+});
+</script>
+
 <style>
-    .profile-container {
-        max-width: 600px;
-        margin: 40px auto;
-        padding: 30px;
-        background: #f8f9fa;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
+/* Стили для выпадающего меню подписок */
+.subscription-dropdown {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    width: 300px;
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 5px;
+}
 
-    .user-info {
-        margin-bottom: 30px;
-        padding: 20px;
-        background: white;
-        border-radius: 8px;
-    }
+.subscription-dropdown.show {
+    display: block;
+    animation: fadeIn 0.3s;
+}
 
-    .action-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
+.dropdown-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
 
-    .profile-actions {
-        display: flex;
-        gap: 15px;
-    }
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 8px;
+}
 
-    .btn {
-        display: inline-block;
-        padding: 12px 24px;
-        text-decoration: none;
-        border-radius: 6px;
-        font-weight: 500;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-    }
+.dropdown-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 
-    .btn-main {
-        background-color: #4285f4;
-        color: white;
-        width: 100%;
-    }
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    background: #f9f9f9;
+    transition: all 0.2s;
+}
 
-    .btn-main:hover {
-        background-color: #3367d6;
-        transform: translateY(-2px);
-    }
+.category-item:hover {
+    background: #f0f0f0;
+}
 
-    .btn-logout {
-        background-color: #ea4335;
-        color: white;
-        flex: 1;
-    }
+.category-name {
+    font-weight: 500;
+}
 
-    .btn-logout:hover {
-        background-color: #d33426;
-        transform: translateY(-2px);
-    }
+.post-count {
+    color: #666;
+    font-size: 0.9em;
+}
 
-    .btn-change-password {
-        background-color: #34a853;
-        color: white;
-        flex: 1;
-    }
+.subscription-form {
+    margin: 0;
+}
 
-    .btn-change-password:hover {
-        background-color: #2d9248;
-        transform: translateY(-2px);
-    }
+.btn-subscribe, .btn-unsubscribe {
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
-    .logout-form {
-        flex: 1;
-        margin: 0;
-    }
+.btn-subscribe {
+    background: #e1f5fe;
+    color: #0288d1;
+}
+
+.btn-unsubscribe {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.btn-subscribe:hover {
+    background: #b3e5fc;
+}
+
+.btn-unsubscribe:hover {
+    background: #ffcdd2;
+}
+
+.no-categories {
+    padding: 10px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 </style>
 {% endblock %}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Еженедельная подборка новостей</title>
+</head>
+<body>
+    <h2>Здравствуйте, {{ user.username }}!</h2>
+    <p>Вот новые новости за неделю в категории "{{ category.name }}":</p>
+
+    {% for post in posts %}
+    <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.content|truncatechars:200 }}</p>
+        <a href="http://{{ domain }}{% url 'news_detail' post.id %}">
+            Читать полностью
+        </a>
+    </div>
+    {% endfor %}
+
+    <p>
+        <small>
+            <a href="http://{{ domain }}{% url 'unsubscribe_category' category.id %}">
+                Отписаться от этой категории
+            </a>
+        </small>
+    </p>
+</body>
+</html>
