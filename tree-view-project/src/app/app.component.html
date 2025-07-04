@@ -1,0 +1,27 @@
+<div class="app-container">
+  <h2>Дерево 1</h2>
+  <app-tree
+    [nodes]="treeData()"
+    [nodeTemplate]="node1Template"
+    [expandedIds]="expandedIds">
+  </app-tree>
+
+  <h2>Дерево 2</h2>
+  <app-tree
+    [nodes]="treeData()"
+    [nodeTemplate]="node2Template"
+    [expandedIds]="expandedIds">
+  </app-tree>
+
+  <ng-template #node1Template let-node>
+    <app-node1 [node]="node"></app-node1>
+  </ng-template>
+
+  <ng-template #node2Template let-node>
+    <app-node2
+      [node]="node"
+      [expandedIds]="expandedIds"
+      [updateExpandedIds]="updateExpandedIds">
+    </app-node2>
+  </ng-template>
+</div>
